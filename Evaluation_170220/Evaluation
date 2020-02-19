@@ -1,0 +1,173 @@
+EVALUATION DU 17 FEVRIER 2020
+=============================
+
+PYTHON
+------
+
+###1) Suppression des tabulations :
+
+s = "code (insee)	mode de scrutin	numliste	code (nuance de la liste)	numéro du candidat dans la liste	tour	nom	prénom	sexe	Date de naissance	code (profession)	libellé profession	nationalité"
+def r_names() :
+	l1 = s.split("\t")
+	return l1 
+print(l1)
+
+['code (insee)', 'mode de scrutin', 'numliste', 'code (nuance de la liste)', 'numéro du candidat dans la liste', 'tour', 'nom', 'prénom', 'sexe', 'Date de naissance', 'code (profession)', 'libellé profession', 'nationalité']
+
+###2) Remplacement des espaces, des ' et des . par des _ :
+###   Remplacement des é et des è par des e :
+###   Suppression des "" :  
+
+s = "code (insee)	mode de scrutin	numliste	code (nuance de la liste)	numéro du candidat dans la liste	tour	nom	prénom	sexe	Date de naissance	code (profession)	libellé profession	nationalité"
+
+from re import sub
+
+def r_names(s): 
+    
+    l1 = sub (' ','_', s)
+    l2 = sub ('[é,è]','e',l1)
+    l3 = sub ('[(,)]','',l2)
+    elus= l3.split("\t")
+  
+    return elus
+print (r_names(s))
+
+REPONSE :
+['code_insee', 'mode_de_scrutin', 'numliste', 'code_nuance_de_la_liste', 'numero_du_candidat_dans_la_liste', 'tour', 'nom', 'prenom', 'sexe', 'Date_de_naissance', 'code_profession', 'libelle_profession', 'nationalite']
+
+###3) Ecrire une fonction python parse_dates() qui admet pour entrée la liste renvoyée par r_names() et qui retourne une liste contenant seulement les noms de colonnes commençant par «Date».        
+	
+
+
+
+CONSTRUIRE UNE BASE DE DONNÉES
+------------------------------
+
+###3) Création de la BDD RNE : Ok
+      CREATE DATABASE RNE ; 
+
+###4) Création des tables :
+
+####a) Création de la table "elus" :
+CREATE TABLE elus (
+nom VARCHAR(100) COMMENT "",
+prenom VARCHAR(50) COMMENT "",
+sexe VARCHAR(1) COMMENT "",
+Date_de_naissance DATETIME COMMENT "",
+code_profession VARCHAR(2) COMMENT "",
+libelle_profession VARCHAR(35) COMMENT "",
+nationalite VARCHAR(1) COMMENT "",
+code_insee VARCHAR(4) COMMENT "",
+mode_de_scrutin_numlist VARCHAR(12) COMMENT "",
+code_nuance_de_la_liste VARCHAR(4) COMMENT "",
+numero_du_candidat_dans_la_liste VARCHAR(2) COMMENT "")
+;
+
+####b) Création de la table "population" :
+CREATE TABLE population (
+code_insee INTEGER(5) COMMENT "",
+population_legale INTEGER(5) COMMENT "")
+; 
+
+####c) Création de la table "nuancier politique" :
+CREATE TABLE nuancier(
+code VARCHAR(5) COMMENT "",
+libelle VARCHAR(50)COMMENT "", 
+ordre VARCHAR(2) COMMENT "",
+definition VARCHAR(100)COMMENT "")
+;
+
+####d) Création de la table "liste des villes" :
+CREATE TABLE villes (
+id VARCHAR(6)COMMENT "",
+department_code VARCHAR(6)COMMENT "",
+insee_code VARCHAR(6)COMMENT "",
+zip_code VARCHAR(5)COMMENT "",
+name VARCHAR(5)COMMENT "" )
+;
+
+####e) Création de la table "référentiel géographique" :
+CREATE TABLE categorie (
+Code VARCHAR(6)COMMENT "",
+Nb_d_emplois VARCHAR(6)COMMENT "",
+Artisans_commerçants_chefs_d_entreprise VARCHAR(6)COMMENT "",
+Cadres_et_professions_intellectuelles_superieurs VARCHAR(6)COMMENT "",
+Professions_intermediaires VARCHAR(6)COMMENT "",
+Employes VARCHAR(6)COMMENT "",
+Ouvriers VARCHAR(6)COMMENT "" )
+;
+
+####c) Création de la table "département" :
+CREATE TABLE departements (
+id VARCHAR(4)COMMENT "",
+region_code VARCHAR(4)COMMENT "",
+code VARCHAR(3)COMMENT "",
+name VARCHAR(100)COMMENT "",
+nom_normalise VARCHAR(100)COMMENT "" )
+;
+
+###5). Ecrire la requête qui va créer un nouvelle utilisateur MySQL « RNE_user » avec pour mot de passe « RNE_pasword » et lui accorder tous les droits sur la base RNE. Utiliser cet utilisateur pour la suite.
+
+USE RNE ;
+CREATE USER 'RNE_user'@'localhost' IDENTIFIED BY 'RNE_pasword';
+GRANT ALL PRIVILEGES ON * . * TO 'admin1'@'localhost';
+FLUSH PRIVILEGES;
+
+
+###6)  Les fichiers ayant la même structure, écrire une fonction chargement() pour alimenter la base « RNE » avec ces fichiers. Cette fonction utilisera les fonctions r_names et parses_dates(). Elle aura pour entrée la chaîne de caractère contenant le nom des colonnes, le chemin d’accès vers le fichier et le nom de la table dans laquelle écrire. Alimenter la base avec les fichiers.
+
+import pandas as pd
+import sqlalchemy
+
+engine = sqlalchemy.create_engine("mysql+pymysql://RNE_user:XXXXXX@localhost/RNE")
+
+link = '/home/utilisateur/Documents/PROJETS/Evaluation_170220/categorie.xlsx'
+
+df = pd.read_excel(link, skiprows=0, header=1)
+print(df)
+
+df.to_sql('categorie', con = engine, if_exists='replace', index = False)
+
+###7) Identifier les colonnes pouvant faire office de clés primaire pour chacune des tables et identifier les clés étrangères.
+###      Dessiner avec l’outil de votre choix le schéma conceptuel de la base RNE et y faire apparaitre les clés primaires et étrangère avec les notations conventionnelles. Y faire apparaitre les cardinalités.
+
+REQUETES SQL
+------------
+
+###8) Quel sont les parties politiques qui dans leur libellé comportent le terme « Union » ?
+
+USE RNE ;
+SELECT * FROM nuancier
+WHERE  libelle LIKE '%union%'
+;
+
+####REPONSE :
+	**code, libelle, ordre, définition**
+	- 'LUMP', 'Liste Union pour un Mouvement Populaire', '13', 'Liste de l\'Union pour un Mouvement Populaire.'
+	- 'LUDI', 'Liste Union Démocrates et Indépendants', '12', 'Parti Radical, Nouveau-Centre, Parti Libéral Démocrate, Alliance Centriste, la Gauche Moderne, Force Européenne Démocrate, Nouvelle Ecologie Démocrate, Territoires en mouvement.'
+	- 'LUC', 'Liste Union du Centre', '11', 'Liste d\'union du centre : Pour être nuancée LUC, une liste doit obtenir l\'investiture de « l\'Alternative », c\'est à dire du Modem et de l\'UDI.'
+	- 'LUG', 'Liste Union de la Gauche', '6', 'Liste d\'Union des partis de gauche : Pour être nuancée LUG, une liste doit obtenir l\'investiture du PS et d\'au moins un autre parti de gauche (EELV, PRG, PCF, Parti de Gauche). Elle peut néanmoins être plus large en intégrant par exemple le Modem.'
+	-'LUD', 'Liste Union de la Droite', '14', 'Liste d\'Union des partis de Droite : Pour être nuancée LUD, une liste doit obtenir l\'investiture de l\'UMP et de l\'UDI. Elle peut néanmoins être plus large en intégrant par exemple le PCD, Debout la République ou le Modem'
+
+###9) Quels élus du département du « var » sont nés entre le mois de juin et aout ?
+
+SELECT *
+FROM elus
+WHERE Date_de_naissance BETWEEN '01/06/' AND '31/08';
+
+
+10. Quel est l’âge moyen des élus homme au 01/01/2014 ? Celui des élus femme ?
+11. Afficher la population totale du département des « Bouches-du-Rhône »
+12. Quel sont les 10 départements comptant le plus d’ouvriers.
+13. Afficher le nombre d’élus regrouper par nuance politique et par département.
+14. Afficher le nombre d’élus regroupé par nuance politique et par villes pour le
+département des « Bouches-du-Rhône ».
+15. Afficher les 10 départements dans lesquelles il y a le plus d’élus femme, ainsi que le
+nombre d’élus femme correspondant.
+16. Donner l’âge moyen des élus par départements au 01/01/2014. Les afficher par ordre
+décroissant.
+17. Afficher les départements où l’âge moyen des élus est strictement inférieur à 54 ans.
+
+
+
+
